@@ -24,13 +24,6 @@ if not os.path.exists('static'):
 def index():
     return render_template('index.html')
 
-@app.route('/admin-login', methods=['GET', 'POST'])
-def admin_login():
-    if request.method == 'POST':
-        # Add admin login logic here if needed
-        return redirect(url_for('admin'))
-    return render_template('admin_login.html')
-
 @app.route('/join_queue')
 def join_queue():
     global queue, global_counter
