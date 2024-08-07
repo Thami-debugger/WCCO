@@ -102,5 +102,16 @@ def mark_missing(number):
         missing_queue.append(number)
     return redirect(url_for('admin'))
 
+@app.route('/reset', methods=['POST'])
+def reset():
+    global queue, served_queue, missing_queue, current_number, global_counter, serving_started
+    queue.clear()
+    served_queue.clear()
+    missing_queue.clear()
+    current_number = 0
+    global_counter = 1
+    serving_started = False
+    return redirect(url_for('admin'))
+
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)), debug=os.getenv('FLASK_DEBUG', 'False').lower() in ['true', '1'])

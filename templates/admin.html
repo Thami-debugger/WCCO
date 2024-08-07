@@ -28,5 +28,8 @@
         <li>{{ number }} <form action="{{ url_for('confirm_served', number=number) }}" method="GET" style="display:inline;"><button type="submit">Confirm Served</button></form></li>
         {% endfor %}
     </ul>
+    <form action="{{ url_for('reset') }}" method="POST">
+        <button type="submit">Reset All</button>
+    </form>
 </body>
 </html>
