@@ -1,8 +1,7 @@
-import os
 from flask import Flask, render_template, jsonify, redirect, url_for, request
 import qrcode
+import os
 from dotenv import load_dotenv
-import signal
 
 load_dotenv()
 
@@ -123,10 +122,5 @@ def reset():
     serving_started = False
     return redirect(url_for('admin'))
 
-@app.route('/shutdown', methods=['POST'])
-def shutdown():
-    os.kill(os.getpid(), signal.SIGINT)
-    return 'Server shutting down...'
-
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)), debug=os.getenv('FLASK_DEBUG', 'False').lower() in ['true', '1']))
+    app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)), debug=os.getenv('FLASK_DEBUG', 'False').lower() in ['true', '1'])
