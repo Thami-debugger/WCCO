@@ -1,4 +1,4 @@
-from flask import Flask, render_template, jsonify, redirect, url_for, request, session
+from flask import Flask, render_template, jsonify, redirect, url_for, request
 import qrcode
 import os
 from dotenv import load_dotenv
@@ -34,11 +34,20 @@ def join_queue():
     img_path = f'static/queue_{new_number}.png'
     img.save(img_path)
     position_in_queue = queue.index(new_number) + 1
-    return render_template('queue.html', number=new_number, image_url=img_path, position=position_in_queue)
+
+    # Ensure the image is deleted after rendering
+    return render_template('queue.html', number=new_number, image_url=img_path, position=position_in_queue, img_path=img_path)
 
 @app.route('/queue_status/<int:number>')
 def queue_status(number):
-    return render_template('queue.html', number=number, image_url=f'/static/queue_{number}.png')
+    img_path = f'static/queue_{number}.png'
+    return render_template('queue.html', number=number, image_url=img_path, img_path=img_path)
+
+@app.route('/delete_image/<path:img_path>', methods=['POST'])
+def delete_image(img_path):
+    if os.path.exists(img_path):
+        os.remove(img_path)
+    return '', 204
 
 @app.route('/confirm_served/<int:number>')
 def confirm_served(number):

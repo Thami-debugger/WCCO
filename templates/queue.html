@@ -23,6 +23,13 @@
                     document.getElementById('wait-time').innerText = data.serving_started ? data.average_wait_time : 'Serving not started';
                 });
         }
+
+        window.addEventListener('beforeunload', function() {
+            fetch('/delete_image/{{ img_path }}', {
+                method: 'POST'
+            });
+        });
+
         setInterval(updateStatus, 5000);
     </script>
 </body>
