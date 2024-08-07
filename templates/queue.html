@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Queue Number {{ number }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+    <h1>Your Queue Number: {{ number }}</h1>
+    <img src="{{ image_url }}" alt="QR Code">
+    <div id="status">
+        <p>Your Position in Queue: <span id="queue-position">{{ position }}</span></p>
+        <p>Current Number Being Served: <span id="current-number"></span></p>
+        <p>Estimated Wait Time: <span id="wait-time"></span> minutes</p>
+    </div>
+    <script>
+        function updateStatus() {
+            fetch('/current_status')
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('current-number').innerText = data.current_number;
+                    document.getElementById('wait-time').innerText = data.serving_started ? data.average_wait_time : 'Serving not started';
+                });
+        }
+        setInterval(updateStatus, 5000);
+    </script>
+</body>
+</html>
