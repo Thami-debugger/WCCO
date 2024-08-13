@@ -122,5 +122,16 @@ def reset():
     serving_started = False
     return redirect(url_for('admin'))
 
+@app.route('/add_to_queue', methods=['POST'])
+def add_to_queue():
+    global queue, global_counter
+    new_number = global_counter
+    global_counter += 1
+    queue.append(new_number)
+    img = qrcode.make(f'{request.host_url}confirm_served/{new_number}')
+    img_path = f'static/queue_{new_number}.png'
+    img.save(img_path)
+    return redirect(url_for('admin'))
+
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)), debug=os.getenv('FLASK_DEBUG', 'False').lower() in ['true', '1'])
