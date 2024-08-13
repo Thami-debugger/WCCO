@@ -1,4 +1,4 @@
-from flask import Flask, render_template, jsonify, redirect, url_for, request
+from flask import Flask, render_template, jsonify, redirect, url_for, request, session
 import qrcode
 import os
 from dotenv import load_dotenv
@@ -27,21 +27,27 @@ def index():
 @app.route('/join_queue')
 def join_queue():
     global queue, global_counter
-    new_number = global_counter
-    global_counter += 1
-    queue.append(new_number)
-    img = qrcode.make(f'{request.host_url}confirm_served/{new_number}')
-    img_path = f'static/queue_{new_number}.png'
-    img.save(img_path)
-    position_in_queue = queue.index(new_number) + 1
+    if 'queue_number' not in session:
+        new_number = global_counter
+        global_counter += 1
+        queue.append(new_number)
+        session['queue_number'] = new_number
 
-    # Ensure the image is deleted after rendering
-    return render_template('queue.html', number=new_number, image_url=img_path, position=position_in_queue, img_path=img_path)
+        img = qrcode.make(f'{request.host_url}confirm_served/{new_number}')
+        img_path = f'static/queue_{new_number}.png'
+        img.save(img_path)
+        session['img_path'] = img_path
+    else:
+        new_number = session['queue_number']
+        img_path = session['img_path']
+
+    position_in_queue = queue.index(new_number) + 1
+    return render_template('queue.html', number=new_number, image_url=img_path, position=position_in_queue)
 
 @app.route('/queue_status/<int:number>')
 def queue_status(number):
-    img_path = f'static/queue_{number}.png'
-    return render_template('queue.html', number=number, image_url=img_path, img_path=img_path)
+    img_path = session.get('img_path', f'static/queue_{number}.png')
+    return render_template('queue.html', number=number, image_url=img_path)
 
 @app.route('/delete_image/<path:img_path>', methods=['POST'])
 def delete_image(img_path):
@@ -120,6 +126,7 @@ def reset():
     current_number = 0
     global_counter = 1
     serving_started = False
+    session.clear()  # Clear session data to reset user states
     return redirect(url_for('admin'))
 
 @app.route('/add_to_queue', methods=['POST'])
