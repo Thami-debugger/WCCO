@@ -8,7 +8,9 @@
 </head>
 <body>
     <h1>Welcome to the Queue Management System</h1>
-    <a href="{{ url_for('join_queue') }}">Join the Queue</a>
-    <a href="{{ url_for('admin') }}">Admin Panel</a>
+    <p>Scan the QR code below to join the queue:</p>
+    <img src="{{ url_for('static', filename='join_queue_qr.png') }}" alt="Join Queue QR Code">
+    <p>Scan the QR code below to access the admin panel:</p>
+    <img src="{{ url_for('static', filename='admin_panel_qr.png') }}" alt="Admin Panel QR Code">
 </body>
 </html>
