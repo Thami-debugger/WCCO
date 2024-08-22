@@ -129,6 +129,17 @@ def mark_missing(number):
         missing_queue.append(number)
     return redirect(url_for('admin'))
 
+@app.route('/remove_from_queue/<int:number>', methods=['POST'])
+def remove_from_queue(number):
+    global queue
+    if number in queue:
+        queue.remove(number)
+        # Decrement numbers of all subsequent entries
+        for i in range(len(queue)):
+            if queue[i] > number:
+                queue[i] -= 1
+    return redirect(url_for('admin'))
+
 @app.route('/reset', methods=['POST'])
 def reset():
     global queue, served_queue, missing_queue, current_number, global_counter, serving_started

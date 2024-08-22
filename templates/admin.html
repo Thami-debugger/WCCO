@@ -13,7 +13,14 @@
     <h2>Queue</h2>
     <ul>
         {% for number in queue %}
-        <li>{{ number }} <form action="{{ url_for('mark_missing', number=number) }}" method="POST" style="display:inline;"><button type="submit">Mark as Missing</button></form></li>
+        <li>{{ number }}
+            <form action="{{ url_for('mark_missing', number=number) }}" method="POST" style="display:inline;">
+                <button type="submit">Mark as Missing</button>
+            </form>
+            <form action="{{ url_for('remove_from_queue', number=number) }}" method="POST" style="display:inline;">
+                <button type="submit">Remove</button>
+            </form>
+        </li>
         {% endfor %}
     </ul>
     <form action="{{ url_for('start_serving') }}" method="POST">
@@ -25,7 +32,11 @@
     <h2>Missing People</h2>
     <ul>
         {% for number in missing_queue %}
-        <li>{{ number }} <form action="{{ url_for('confirm_served', number=number) }}" method="GET" style="display:inline;"><button type="submit">Confirm Served</button></form></li>
+        <li>{{ number }}
+            <form action="{{ url_for('confirm_served', number=number) }}" method="GET" style="display:inline;">
+                <button type="submit">Confirm Served</button>
+            </form>
+        </li>
         {% endfor %}
     </ul>
 
