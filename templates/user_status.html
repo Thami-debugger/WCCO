@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Your Queue Status - {{ business_name }}</title>
+    <meta http-equiv="refresh" content="30">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: 'Segoe UI', Arial, sans-serif; 
+            background: white; 
+            text-align: center; 
+            padding: 30px 20px;
+        }
+        .container { 
+            max-width: 600px; 
+            margin: 0 auto; 
+        }
+        .business-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+        .user-card {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            margin: 20px 0;
+            border: 2px solid #28a745;
+        }
+        .queue-number { 
+            font-size: 4em; 
+            color: #28a745; 
+            margin: 20px 0;
+            font-weight: bold;
+        }
+        .status-info {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+            text-align: left;
+        }
+        .btn { 
+            display: inline-block; 
+            padding: 12px 25px; 
+            background: #667eea; 
+            color: white; 
+            text-decoration: none; 
+            border-radius: 25px; 
+            margin: 10px; 
+            font-size: 1.1em;
+        }
+        .position-badge {
+            background: #ffc107;
+            color: #856404;
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-size: 1.2em;
+            font-weight: bold;
+            margin: 15px 0;
+        }
+        .waiting-list { 
+            background: #f8f9fa; 
+            padding: 20px; 
+            border-radius: 10px; 
+            margin: 20px 0; 
+        }
+        .number { 
+            display: inline-block; 
+            background: white; 
+            padding: 10px 15px; 
+            margin: 5px; 
+            border-radius: 5px; 
+            border: 1px solid #dee2e6;
+        }
+        .current-serving {
+            background: #28a745;
+            color: white;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 20px 0;
+            font-size: 1.2em;
+        }
+        .user-highlight {
+            background: #28a745;
+            color: white;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="business-header">
+            <h1>{{ business_name }}</h1>
+            <p>Your Queue Status</p>
+        </div>
+        
+        <div class="user-card">
+            <h2>Your Queue Number</h2>
+            <div class="queue-number">#{{ queue_number }}</div>
+            
+            {% if status == 'served' %}
+                <div class="current-serving">
+                    <h3>✅ Completed</h3>
+                    <p>You have been served. Thank you!</p>
+                </div>
+            {% elif status == 'serving' %}
+                <div class="current-serving">
+                    <h3>🎉 It's Your Turn!</h3>
+                    <p>Please proceed to the counter</p>
+                </div>
+            {% else %}
+                <div class="position-badge">
+                    Position in Line: {{ user_position }}
+                </div>
+                
+                <div class="status-info">
+                    <p><strong>Estimated wait time:</strong> {{ wait_time }} minutes</p>
+                    <p><strong>People ahead of you:</strong> {{ user_position - 1 }}</p>
+                    <p><strong>Your status:</strong> Waiting</p>
+                </div>
+            {% endif %}
+        </div>
+
+        <div class="current-serving">
+            <h2>Now Serving</h2>
+            <div style="font-size: 2em; font-weight: bold;">#{{ current_number if current_number else '---' }}</div>
+        </div>
+        
+        {% if waiting and status == 'waiting' %}
+        <div class="waiting-list">
+            <h3>Waiting Ahead ({{ waiting|length }} people):</h3>
+            <div>
+                {% for num in waiting[:10] %}
+                    <div class="number {% if num == queue_number %}user-highlight{% endif %}">
+                        #{{ num }}
+                    </div>
+                {% endfor %}
+                {% if waiting|length > 10 %}
+                    <p>... and {{ waiting|length - 10 }} more</p>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+        
+        <p>🔄 Auto-updates every 30 seconds</p>
+        <a href="/status" class="btn">View Full Queue</a>
+        <a href="/" class="btn" style="background: #6c757d;">Home</a>
+    </div>
+</body>
+</html>

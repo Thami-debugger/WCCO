@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Panel - {{ business_name }}</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: 'Segoe UI', Arial, sans-serif; 
+            background: white; 
+            padding: 20px; 
+        }
+        .container { max-width: 1000px; margin: 0 auto; }
+        .header { 
+            text-align: center; 
+            margin-bottom: 30px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+        }
+        .control-panel { 
+            background: #f8f9fa; 
+            padding: 30px; 
+            border-radius: 10px; 
+            margin: 20px 0; 
+        }
+        .btn {
+            padding: 12px 25px;
+            margin: 5px;
+            border: none;
+            border-radius: 5px;
+            color: white;
+            font-size: 1.1em;
+            cursor: pointer;
+        }
+        .btn-next { background: #28a745; }
+        .btn-add { background: #007bff; }
+        .btn-end { background: #dc3545; }
+        .queue-display { 
+            display: grid; 
+            grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); 
+            gap: 10px; 
+            margin: 20px 0; 
+        }
+        .queue-number { 
+            background: white; 
+            padding: 15px; 
+            text-align: center; 
+            border-radius: 5px; 
+            border: 1px solid #dee2e6;
+            position: relative;
+        }
+        .remove-btn {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background: #dc3545;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            font-size: 12px;
+            cursor: pointer;
+        }
+        .share-section {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin: 30px 0;
+        }
+        .share-card {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            border: 1px solid #e0e0e0;
+            text-align: center;
+        }
+        .qr-code {
+            max-width: 150px;
+            margin: 0 auto 15px;
+        }
+        .qr-code img {
+            width: 100%;
+            height: auto;
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            padding: 10px;
+            background: white;
+        }
+        .url-box {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+            font-size: 0.9em;
+            word-break: break-all;
+        }
+        .stats-section {
+            background: #f8f9fa;
+            padding: 25px;
+            border-radius: 10px;
+            margin: 20px 0;
+            text-align: center;
+        }
+        .stat-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            border: 1px solid #e0e0e0;
+        }
+        .stat-number {
+            font-size: 2.5em;
+            font-weight: bold;
+            color: #667eea;
+        }
+        .stat-label {
+            color: #666;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>⚙️ {{ business_name }} - Admin Panel</h1>
+            <p>Queue Management Dashboard</p>
+        </div>
+
+        <div class="share-section">
+            <div class="share-card">
+                <h3>📱 Join Queue QR</h3>
+                <div class="qr-code">
+                    <img src="{{ join_qr }}" alt="Join Queue QR Code">
+                </div>
+                <p>Customers scan this to get queue numbers</p>
+                <div class="url-box">{{ join_url }}</div>
+                <button onclick="copyText('{{ join_url }}')" class="btn" style="background: #17a2b8;">
+                    Copy Join Link
+                </button>
+            </div>
+            
+            <div class="share-card">
+                <h3>📊 Status QR</h3>
+                <div class="qr-code">
+                    <img src="{{ status_qr }}" alt="Status QR Code">
+                </div>
+                <p>Customers scan this to check queue status</p>
+                <div class="url-box">{{ status_url }}</div>
+                <button onclick="copyText('{{ status_url }}')" class="btn" style="background: #17a2b8;">
+                    Copy Status Link
+                </button>
+            </div>
+        </div>
+        
+        <div class="stats-section">
+            <h3>📊 Today's Statistics</h3>
+            <div class="stat-cards">
+                <div class="stat-card">
+                    <div class="stat-number">{{ total_today }}</div>
+                    <div class="stat-label">Total Today</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">{{ served_today }}</div>
+                    <div class="stat-label">Served Today</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">{{ waiting|length }}</div>
+                    <div class="stat-label">Currently Waiting</div>
+                </div>
+            </div>
+            
+            <a href="/admin/export" class="btn" style="background: #28a745;">
+              📥 Export Report (CSV)
+            </a>
+            <p style="margin-top: 10px; color: #666; font-size: 0.9em;">
+                Session started: {{ session_started.strftime('%Y-%m-%d %H:%M') }}
+            </p>
+        </div>
+        
+        <div class="control-panel">
+            <h2>Now Serving: <span style="color: #28a745;">#{{ current_number if current_number else 'None' }}</span></h2>
+            
+            <form action="/admin/next" method="POST" style="display: inline;">
+                <button type="submit" class="btn btn-next">✅ Serve Next Customer</button>
+            </form>
+            
+            <form action="/admin/add" method="POST" style="display: inline;">
+                <button type="submit" class="btn btn-add">➕ Add Manual Number</button>
+            </form>
+            
+            <form action="/admin/end" method="POST" style="display: inline;">
+                <button type="submit" class="btn btn-end" onclick="return confirm('End queue session? This will clear all queue data.')">
+                    🛑 End Queue
+                </button>
+            </form>
+            
+            <a href="/status" class="btn" style="background: #6c757d;" target="_blank">View Public Status</a>
+        </div>
+        
+        <h3>Waiting Queue ({{ waiting|length }} people):</h3>
+        <div class="queue-display">
+            {% for num in waiting %}
+                <div class="queue-number">
+                    {{ num }}
+                    <form action="/admin/remove/{{ num }}" method="POST" style="display: inline;">
+                        <button type="submit" class="remove-btn" onclick="return confirm('Remove #{{ num }} from queue?')">×</button>
+                    </form>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <script>
+        function copyText(text) {
+            navigator.clipboard.writeText(text).then(() => {
+                alert('Link copied to clipboard!');
+            });
+        }
+    </script>
+</body>
+</html>

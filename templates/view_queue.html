@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Queue Status</title>
+    <meta http-equiv="refresh" content="30">
+    <style>
+        body { font-family: Arial; text-align: center; margin: 20px; }
+        .current { font-size: 48px; color: green; margin: 20px; }
+        .waiting-list { margin: 20px; }
+        .number { display: inline-block; padding: 10px; margin: 5px; background: #f0f0f0; }
+    </style>
+</head>
+<body>
+    <h1>Current Queue Status</h1>
+    
+    {% if current_number %}
+        <div class="current">Now Serving: #{{ current_number }}</div>
+    {% else %}
+        <div class="current">Queue is empty</div>
+    {% endif %}
+    
+    <div class="waiting-list">
+        <h3>Waiting: {{ waiting_list|length }} people</h3>
+        {% for number, name in waiting_list %}
+            <div class="number">#{{ number }}</div>
+        {% endfor %}
+    </div>
+    
+    <p>Estimated wait time: {{ wait_time }} minutes</p>
+    <a href="/">Join Queue</a>
+</body>
+</html>

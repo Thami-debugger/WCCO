@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Queue Status - {{ business_name }}</title>
+    <meta http-equiv="refresh" content="15">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: 'Segoe UI', Arial, sans-serif; 
+            background: white; 
+            text-align: center; 
+            padding: 30px 20px;
+        }
+        .container { 
+            max-width: 600px; 
+            margin: 0 auto; 
+        }
+        .business-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+        .current { 
+            background: #28a745; 
+            color: white; 
+            padding: 30px; 
+            border-radius: 10px; 
+            margin: 20px 0; 
+            font-size: 1.5em;
+        }
+        .waiting-list { 
+            background: #f8f9fa; 
+            padding: 20px; 
+            border-radius: 10px; 
+            margin: 20px 0; 
+        }
+        .number { 
+            display: inline-block; 
+            background: white; 
+            padding: 10px 15px; 
+            margin: 5px; 
+            border-radius: 5px; 
+            border: 1px solid #dee2e6;
+        }
+        .btn { 
+            display: inline-block; 
+            padding: 12px 25px; 
+            background: #667eea; 
+            color: white; 
+            text-decoration: none; 
+            border-radius: 25px; 
+            margin: 10px; 
+            font-size: 1.1em;
+        }
+        .stats {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="business-header">
+            <h1>{{ business_name }}</h1>
+            <p>Queue Status</p>
+        </div>
+        
+        <div class="current">
+            <h2>Now Serving</h2>
+            <div style="font-size: 2.5em; font-weight: bold;">#{{ current_number if current_number else '---' }}</div>
+        </div>
+        
+        <div class="stats">
+            <p><strong>Total Waiting:</strong> {{ total_waiting }} people</p>
+            <p><strong>Estimated wait time:</strong> {{ wait_time }} minutes</p>
+        </div>
+        
+        {% if waiting %}
+        <div class="waiting-list">
+            <h3>Waiting ({{ waiting|length }} people):</h3>
+            <div>
+                {% for num in waiting[:12] %}
+                    <div class="number">#{{ num }}</div>
+                {% endfor %}
+                {% if waiting|length > 12 %}
+                    <p>... and {{ waiting|length - 12 }} more</p>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+        
+        <p>🔄 Auto-updates every 15 seconds</p>
+        <a href="/join" class="btn" style="background: #28a745;">Join Queue</a>
+        <a href="/" class="btn" style="background: #6c757d;">Home</a>
+    </div>
+</body>
+</html>

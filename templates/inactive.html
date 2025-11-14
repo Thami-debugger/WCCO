@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Queue Not Active - QuickQueue</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: 'Segoe UI', Arial, sans-serif; 
+            background: white; 
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .message-card { 
+            background: white; 
+            padding: 40px; 
+            border-radius: 15px; 
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            max-width: 500px; 
+            width: 100%;
+            text-align: center;
+            border: 2px solid #f8f9fa;
+        }
+        .icon { font-size: 4em; margin-bottom: 20px; color: #6c757d; }
+        h1 { color: #333; margin-bottom: 15px; }
+        p { color: #666; margin-bottom: 25px; line-height: 1.6; }
+        .btn {
+            display: inline-block;
+            padding: 12px 30px;
+            background: #667eea;
+            color: white;
+            text-decoration: none;
+            border-radius: 25px;
+            font-size: 1.1em;
+            transition: background 0.3s ease;
+        }
+        .btn:hover { background: #5a6fd8; }
+        .admin-note {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+            color: #856404;
+        }
+    </style>
+</head>
+<body>
+    <div class="message-card">
+        <div class="icon">⏸️</div>
+        <h1>Queue Not Active</h1>
+        <p>The queue management system is currently not active.</p>
+        <p>Please check back later or ask staff to start the queue system.</p>
+        
+        <div class="admin-note">
+            <strong>For Business Staff:</strong> 
+            <a href="/admin/init" style="color: #007bff; text-decoration: none; font-weight: 500;">
+                Start Queue Management
+            </a>
+        </div>
+        
+        <p>If you're a customer, please wait for staff to activate the queue system.</p>
+        <a href="/" class="btn">Refresh Status</a>
+    </div>
+</body>
+</html>

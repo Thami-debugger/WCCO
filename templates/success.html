@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Your Queue Number - {{ business_name }}</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: 'Segoe UI', Arial, sans-serif; 
+            background: white; 
+            text-align: center; 
+            padding: 50px 20px;
+        }
+        .success-card { 
+            background: white; 
+            padding: 40px; 
+            border-radius: 15px; 
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            max-width: 500px; 
+            margin: 0 auto;
+            border: 2px solid #28a745;
+        }
+        .queue-number { 
+            font-size: 4em; 
+            color: #28a745; 
+            margin: 20px 0;
+            font-weight: bold;
+        }
+        .info { 
+            background: #f8f9fa; 
+            padding: 20px; 
+            border-radius: 10px; 
+            margin: 20px 0; 
+        }
+        .btn { 
+            display: inline-block; 
+            padding: 12px 30px; 
+            background: #667eea; 
+            color: white; 
+            text-decoration: none; 
+            border-radius: 25px; 
+            margin: 10px; 
+        }
+        .business-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+        .qr-section {
+            margin: 20px 0;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+        }
+        .qr-code {
+            max-width: 150px;
+            margin: 0 auto;
+        }
+        .qr-code img {
+            width: 100%;
+            height: auto;
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            padding: 10px;
+            background: white;
+        }
+    </style>
+</head>
+<body>
+    <div class="success-card">
+        <div class="business-header">
+            <h2>{{ business_name }}</h2>
+        </div>
+        
+        <h1 style="color: #28a745; margin-bottom: 20px;">✅ You're in Line!</h1>
+        <div class="queue-number">#{{ queue_number }}</div>
+        
+        <div class="info">
+            <p><strong>Position in line:</strong> {{ position }}</p>
+            <p><strong>Estimated wait:</strong> {{ wait_time }} minutes</p>
+            <p>📱 Save this number or take a screenshot</p>
+        </div>
+
+        <div class="qr-section">
+            <h4>📱 Scan to Check Status</h4>
+            <div class="qr-code">
+                <img src="{{ qr_code }}" alt="Scan to check queue status">
+            </div>
+            <p>Scan to view real-time queue updates</p>
+            <p><small>Or visit: <a href="{{ status_url }}">{{ status_url }}</a></small></p>
+        </div>
+        
+        <p>Check your status anytime:</p>
+        <a href="/status/{{ queue_number }}" class="btn">View My Status</a><br>
+        <a href="/status" class="btn">View Full Queue</a><br>
+        <a href="/" class="btn" style="background: #6c757d;">Back to Home</a>
+    </div>
+</body>
+</html>

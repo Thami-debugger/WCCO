@@ -1,52 +1,45 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Panel</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <style>
+        body { font-family: Arial; margin: 20px; }
+        .section { margin: 20px 0; padding: 20px; border: 1px solid #ccc; }
+        button { padding: 10px; margin: 5px; }
+    </style>
 </head>
 <body>
-    <h1>Admin Panel</h1>
-    <p>Current Number Being Served: {{ current_number }}</p>
-    <p>Serving Started: {{ 'Yes' if serving_started else 'No' }}</p>
-    <h2>Queue</h2>
-    <ul>
-        {% for number in queue %}
-        <li>{{ number }}
-            <form action="{{ url_for('mark_missing', number=number) }}" method="POST" style="display:inline;">
-                <button type="submit">Mark as Missing</button>
-            </form>
-            <form action="{{ url_for('remove_from_queue', number=number) }}" method="POST" style="display:inline;">
-                <button type="submit">Remove</button>
-            </form>
-        </li>
+    <h1>Queue Admin Panel</h1>
+    
+    <div class="section">
+        <h2>Current Customer</h2>
+        {% if current %}
+            <p>Now Serving: #{{ current[3] }} - {{ current[1] }}</p>
+            <a href="/admin/next"><button>Serve Next</button></a>
+        {% else %}
+            <p>No one currently being served</p>
+            <a href="/admin/next"><button>Start Serving</button></a>
+        {% endif %}
+    </div>
+    
+    <div class="section">
+        <h2>Waiting List ({{ waiting|length }})</h2>
+        {% for customer in waiting %}
+            <p>#{{ customer[3] }} - {{ customer[1] }} 
+               <a href="/admin/remove/{{ customer[0] }}">Remove</a>
+            </p>
         {% endfor %}
-    </ul>
-    <form action="{{ url_for('start_serving') }}" method="POST">
-        <button type="submit" {{ 'disabled' if serving_started else '' }}>Start Serving</button>
-    </form>
-    <form action="{{ url_for('serve_next') }}" method="POST">
-        <button type="submit" {{ '' if serving_started else 'disabled' }}>Serve Next</button>
-    </form>
-    <h2>Missing People</h2>
-    <ul>
-        {% for number in missing_queue %}
-        <li>{{ number }}
-            <form action="{{ url_for('confirm_served', number=number) }}" method="GET" style="display:inline;">
-                <button type="submit">Confirm Served</button>
-            </form>
-        </li>
-        {% endfor %}
-    </ul>
-
-    <h2>Add to Queue</h2>
-    <form action="{{ url_for('add_to_queue') }}" method="POST">
-        <button type="submit">Add Person to Queue</button>
-    </form>
-
-    <form action="{{ url_for('reset') }}" method="POST">
-        <button type="submit">Reset All</button>
-    </form>
+    </div>
+    
+    <div class="section">
+        <h2>Manual Add</h2>
+        <form action="/admin/add_manual" method="POST">
+            <input type="text" name="name" placeholder="Customer Name">
+            <input type="number" name="queue_number" placeholder="Queue Number">
+            <button type="submit">Add to Queue</button>
+        </form>
+    </div>
+    
+    <a href="/view">View Public Display</a>
 </body>
 </html>

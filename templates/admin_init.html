@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Start Queue Management - QuickQueue</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: 'Segoe UI', Arial, sans-serif; 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .init-card { 
+            background: white; 
+            padding: 40px; 
+            border-radius: 15px; 
+            box-shadow: 0 15px 35px rgba(0,0,0,0.1);
+            max-width: 500px; 
+            width: 100%;
+            text-align: center;
+        }
+        h1 { color: #333; margin-bottom: 10px; }
+        p { color: #666; margin-bottom: 30px; }
+        .form-group { margin-bottom: 20px; text-align: left; }
+        label { display: block; margin-bottom: 5px; color: #333; font-weight: 500; }
+        input { 
+            width: 100%; 
+            padding: 12px; 
+            border: 1px solid #ddd; 
+            border-radius: 5px; 
+            font-size: 1em;
+        }
+        .btn {
+            display: inline-block;
+            padding: 12px 30px;
+            background: #28a745;
+            color: white;
+            text-decoration: none;
+            border-radius: 25px;
+            font-size: 1.1em;
+            border: none;
+            cursor: pointer;
+            transition: background 0.3s ease;
+            width: 100%;
+        }
+        .btn:hover { background: #218838; }
+        .info-box {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+            text-align: left;
+        }
+    </style>
+</head>
+<body>
+    <div class="init-card">
+        <div style="font-size: 3em; margin-bottom: 15px;">🚀</div>
+        <h1>Start Queue Management</h1>
+        <p>Initiate your queue system when you see lines forming</p>
+        
+        <form action="/admin/start" method="POST">
+            <div class="form-group">
+                <label for="business_name">Business/Service Name:</label>
+                <input type="text" id="business_name" name="business_name" 
+                       placeholder="e.g., Coffee Shop, Clinic, Service Center" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="created_by">Your Name (Admin):</label>
+                <input type="text" id="created_by" name="created_by" 
+                       placeholder="e.g., Manager John" required>
+            </div>
+            
+            <div class="info-box">
+                <h4>📋 How it works:</h4>
+                <p>1. You start the queue system</p>
+                <p>2. Customers visit this website to get numbers</p>
+                <p>3. You manage the queue from admin panel</p>
+                <p>4. Customers see real-time status updates</p>
+                <p>5. Export daily reports to Excel</p>
+            </div>
+            
+            <button type="submit" class="btn">Start Queue Management</button>
+        </form>
+    </div>
+</body>
+</html>
