@@ -1,35 +1,35 @@
-from flask import Flask, render_template, request, redirect, url_for, session, Response
+from flask import Flask, render_template_string, request, redirect, url_for, session, Response
 import qrcode
+from qrcode import constants
 import io
 import base64
 import os
 from datetime import datetime, date
 
 app = Flask(__name__)
-app.secret_key = 'your-secret-key-here'
+app.secret_key = os.environ.get('SECRET_KEY', 'quickqueue-secure-key-2024')
 
-# In-memory storage (resets when server restarts)
+# In-memory storage
 queue_data = {
     'is_active': False,
-    'business_name': 'Our Business',
-    'created_by': 'Admin',
+    'business_name': 'Business Name',
+    'created_by': 'Manager',
     'session_started': None,
-    'queue': [],  # List of queue numbers in order
+    'queue': [],
     'serving_number': 0,
-    'served_numbers': []  # Track served numbers for reporting
+    'served_numbers': []
 }
 
 # Helper functions
 def is_queue_active():
     return queue_data['is_active']
 
-def set_queue_active(active, business_name="Our Business", created_by="Admin"):
+def set_queue_active(active, business_name="Business Name", created_by="Manager"):
     queue_data['is_active'] = active
     queue_data['business_name'] = business_name
     queue_data['created_by'] = created_by
     if active:
         queue_data['session_started'] = datetime.now()
-        # Reset queue when starting new session
         queue_data['queue'] = []
         queue_data['serving_number'] = 0
         queue_data['served_numbers'] = []
@@ -47,319 +47,441 @@ def get_queue_data():
 
 def calculate_wait_time(position):
     return max(0, (position - 1) * 5)
-
 def generate_qr_code(url):
-    """Generate QR code and return as base64 string"""
-    qr = qrcode.QRCode(
-        version=1,
-        error_correction=qrcode.constants.ERROR_CORRECT_L,
-        box_size=10,
-        border=4,
-    )
+    qr = qrcode.QRCode(version=1, error_correction=constants.ERROR_CORRECT_L, box_size=10, border=4)
     qr.add_data(url)
     qr.make(fit=True)
-    
-    img = qr.make_image(fill_color="black", back_color="white")
-    
-    # Convert to base64
+    img = qr.make_image(fill_color="#2c3e50", back_color="white")
     buffer = io.BytesIO()
-    img.save(buffer, format="PNG")
+    img.save(buffer, "PNG")
     buffer.seek(0)
-    
     img_str = base64.b64encode(buffer.getvalue()).decode()
     return f"data:image/png;base64,{img_str}"
 
-def get_daily_stats():
-    """Get today's statistics"""
-    total_today = len(queue_data['queue']) + len(queue_data['served_numbers'])
-    served_today = len(queue_data['served_numbers'])
-    return total_today, served_today
+# HTML Templates
+BASE_HTML = '''
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}QuickQueue - Professional Queue Management{% endblock %}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; 
+            background: #f8fafc; 
+            color: #2d3748; 
+            line-height: 1.6;
+        }
+        .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+        .header { 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white; 
+            padding: 3rem 2rem; 
+            border-radius: 12px;
+            margin-bottom: 2rem;
+            text-align: center;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .card {
+            background: white;
+            padding: 2rem;
+            border-radius: 12px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            border: 1px solid #e2e8f0;
+            margin-bottom: 1.5rem;
+        }
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 24px;
+            background: #667eea;
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: 500;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .btn:hover { 
+            background: #5a67d8; 
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        }
+        .btn-primary { background: #48bb78; }
+        .btn-primary:hover { background: #38a169; }
+        .btn-secondary { background: #718096; }
+        .btn-secondary:hover { background: #4a5568; }
+        .btn-danger { background: #e53e3e; }
+        .btn-danger:hover { background: #c53030; }
+        .qr-container { 
+            text-align: center; 
+            padding: 1.5rem; 
+            background: #f7fafc; 
+            border-radius: 8px; 
+            margin: 1.5rem 0; 
+        }
+        .qr-code { max-width: 200px; margin: 0 auto; }
+        .queue-number { 
+            font-size: 4rem; 
+            font-weight: 700; 
+            color: #48bb78; 
+            margin: 1rem 0;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        .status-badge {
+            display: inline-block;
+            padding: 8px 16px;
+            background: #edf2f7;
+            border-radius: 20px;
+            font-weight: 500;
+            margin: 0.5rem;
+        }
+        .form-group { margin-bottom: 1.5rem; }
+        .form-label { 
+            display: block; 
+            margin-bottom: 0.5rem; 
+            font-weight: 500; 
+            color: #4a5568; 
+        }
+        .form-input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.2s ease;
+        }
+        .form-input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        .grid { 
+            display: grid; 
+            gap: 1.5rem; 
+            margin: 2rem 0; 
+        }
+        .grid-2 { grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
+        .grid-3 { grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); }
+        .stat-card {
+            text-align: center;
+            padding: 1.5rem;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+        .stat-number {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: #667eea;
+            margin-bottom: 0.5rem;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 3rem;
+            padding: 2rem;
+            color: #718096;
+            border-top: 1px solid #e2e8f0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        {% block content %}{% endblock %}
+    </div>
+</body>
+</html>
+'''
+
+INACTIVE_HTML = BASE_HTML.replace('{% block content %}{% endblock %}', '''
+<div style="max-width: 500px; margin: 100px auto; text-align: center;">
+    <div class="card">
+        <div style="font-size: 4rem; margin-bottom: 1rem;">⏸️</div>
+        <h1 style="margin-bottom: 1rem; color: #2d3748;">Queue System Inactive</h1>
+        <p style="color: #718096; margin-bottom: 2rem;">The digital queue management system is currently not active.</p>
+        <a href="/admin/init" class="btn">Activate Queue System</a>
+    </div>
+</div>
+''')
 
 # Routes
 @app.route('/')
 def home():
     if not is_queue_active():
-        return '''
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <title>Queue Not Active</title>
-            <style>
-                body { font-family: Arial; text-align: center; padding: 50px; }
-                .card { background: white; padding: 40px; border-radius: 10px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); max-width: 500px; margin: 0 auto; }
-                .btn { display: inline-block; padding: 12px 25px; background: #667eea; color: white; text-decoration: none; border-radius: 25px; margin: 10px; }
-            </style>
-        </head>
-        <body>
-            <div class="card">
-                <h1>⏸️ Queue Not Active</h1>
-                <p>The queue system is currently not active.</p>
-                <a href="/admin/init" class="btn">Start Queue Management</a>
-            </div>
-        </body>
-        </html>
-        '''
+        return INACTIVE_HTML
     
     business_name, created_by, session_started = get_business_info()
-    
-    # Generate QR code for the main join page
     join_url = f"{request.url_root}join"
     qr_code = generate_qr_code(join_url)
     
-    return f'''
-    <!DOCTYPE html>
-    <html>
-    <head>
-        <title>{business_name} - QuickQueue</title>
-        <style>
-            body {{ font-family: Arial; text-align: center; padding: 20px; }}
-            .header {{ background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 40px; border-radius: 10px; margin-bottom: 30px; }}
-            .card {{ background: white; padding: 30px; border-radius: 10px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); margin: 20px auto; max-width: 300px; }}
-            .btn {{ display: inline-block; padding: 12px 30px; background: #28a745; color: white; text-decoration: none; border-radius: 25px; margin: 10px; }}
-            .qr-code {{ max-width: 200px; margin: 20px auto; }}
-            .qr-code img {{ width: 100%; border: 1px solid #ddd; border-radius: 10px; padding: 10px; background: white; }}
-        </style>
-    </head>
-    <body>
-        <div class="header">
-            <h1>🚀 {business_name}</h1>
-            <p>Queue Management System</p>
-        </div>
+    content = f'''
+    <div class="header">
+        <h1 style="font-size: 2.5rem; margin-bottom: 0.5rem;">🚀 {business_name}</h1>
+        <p style="font-size: 1.2rem; opacity: 0.9;">Digital Queue Management System</p>
+    </div>
 
-        <div class="card">
-            <h3>📱 Scan to Join Queue</h3>
-            <div class="qr-code">
-                <img src="{qr_code}" alt="Scan to join queue">
-            </div>
-            <a href="/join" class="btn">Get Queue Number</a>
+    <div class="qr-container">
+        <h3 style="margin-bottom: 1rem;">Scan to Join Queue</h3>
+        <div class="qr-code">
+            <img src="{qr_code}" alt="Join Queue QR Code" style="width: 100%; border-radius: 8px;">
         </div>
+        <p style="margin-top: 1rem; color: #718096;">Scan QR code or use the button below</p>
+    </div>
 
-        <div class="card">
-            <a href="/status" class="btn" style="background: #667eea;">View Queue Status</a>
+    <div class="grid grid-2">
+        <div class="card" style="text-align: center;">
+            <div style="font-size: 3rem; margin-bottom: 1rem;">👥</div>
+            <h3 style="margin-bottom: 1rem;">Join Queue</h3>
+            <p style="color: #718096; margin-bottom: 1.5rem;">Get your digital queue number</p>
+            <a href="/join" class="btn btn-primary">Get Queue Number</a>
         </div>
-    </body>
-    </html>
+        
+        <div class="card" style="text-align: center;">
+            <div style="font-size: 3rem; margin-bottom: 1rem;">📊</div>
+            <h3 style="margin-bottom: 1rem;">Queue Status</h3>
+            <p style="color: #718096; margin-bottom: 1.5rem;">View current queue progress</p>
+            <a href="/status" class="btn">View Live Status</a>
+        </div>
+    </div>
+
+    <div class="footer">
+        <p>QuickQueue Professional &copy; 2024 - Streamlining Customer Experience</p>
+    </div>
     '''
+    
+    return BASE_HTML.replace('{% block content %}{% endblock %}', content)
 
 @app.route('/join')
 def join_queue():
     if not is_queue_active():
-        return redirect('/')
+        return INACTIVE_HTML
     
-    # Get next queue number
     if queue_data['queue']:
         next_number = max(queue_data['queue']) + 1
     else:
         next_number = 1
     
-    # Add to queue
     queue_data['queue'].append(next_number)
-    
-    # Get waiting position
     position = len([num for num in queue_data['queue'] if num < next_number]) + 1
-    
     wait_time = calculate_wait_time(position)
     business_name, created_by, session_started = get_business_info()
     
-    # Generate QR code for status page
-    status_url = f"{request.url_root}status"
+    status_url = f"{request.url_root}status/{next_number}"
     qr_code = generate_qr_code(status_url)
-    
-    # Store user's queue number in session
     session['user_queue_number'] = next_number
     
-    return f'''
-    <!DOCTYPE html>
-    <html>
-    <head>
-        <title>Your Queue Number</title>
-        <style>
-            body {{ font-family: Arial; text-align: center; padding: 50px 20px; }}
-            .success-card {{ background: white; padding: 40px; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); max-width: 500px; margin: 0 auto; border: 2px solid #28a745; }}
-            .queue-number {{ font-size: 4em; color: #28a745; margin: 20px 0; font-weight: bold; }}
-            .info {{ background: #f8f9fa; padding: 20px; border-radius: 10px; margin: 20px 0; }}
-            .btn {{ display: inline-block; padding: 12px 25px; background: #667eea; color: white; text-decoration: none; border-radius: 25px; margin: 10px; }}
-            .qr-code {{ max-width: 150px; margin: 20px auto; }}
-            .qr-code img {{ width: 100%; border: 1px solid #ddd; border-radius: 10px; padding: 10px; background: white; }}
-        </style>
-    </head>
-    <body>
-        <div class="success-card">
-            <h1 style="color: #28a745;">✅ You're in Line!</h1>
-            <div class="queue-number">#{next_number}</div>
-            
-            <div class="info">
-                <p><strong>Position in line:</strong> {position}</p>
-                <p><strong>Estimated wait:</strong> {wait_time} minutes</p>
-            </div>
+    content = f'''
+    <div style="max-width: 600px; margin: 2rem auto;">
+        <div class="card">
+            <div style="text-align: center;">
+                <div style="font-size: 4rem; color: #48bb78; margin-bottom: 1rem;">✅</div>
+                <h1 style="margin-bottom: 1rem; color: #2d3748;">You're in the Queue</h1>
+                <p style="color: #718096; margin-bottom: 2rem;">Your digital queue number has been assigned</p>
+                
+                <div class="queue-number">#{next_number}</div>
+                
+                <div class="card" style="background: #f0fff4; border-color: #9ae6b4;">
+                    <h3 style="margin-bottom: 1rem; color: #2f855a;">Queue Information</h3>
+                    <p><strong>Position in line:</strong> {position}</p>
+                    <p><strong>Estimated wait time:</strong> {wait_time} minutes</p>
+                    <p><strong>Business:</strong> {business_name}</p>
+                </div>
 
-            <div class="qr-code">
-                <img src="{qr_code}" alt="Scan to check status">
+                <div class="qr-container">
+                    <h4 style="margin-bottom: 1rem;">Track Your Status</h4>
+                    <div class="qr-code">
+                        <img src="{qr_code}" alt="Status QR Code" style="width: 100%; border-radius: 8px;">
+                    </div>
+                    <p style="margin-top: 1rem; color: #718096; font-size: 0.9rem;">
+                        Scan to track your real-time queue position
+                    </p>
+                </div>
+
+                <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; margin-top: 2rem;">
+                    <a href="/status/{next_number}" class="btn">Track My Status</a>
+                    <a href="/status" class="btn btn-secondary">View Full Queue</a>
+                    <a href="/" class="btn btn-secondary">Return Home</a>
+                </div>
             </div>
-            
-            <a href="/status/{next_number}" class="btn">View My Status</a><br>
-            <a href="/status" class="btn">View Full Queue</a><br>
-            <a href="/" class="btn" style="background: #6c757d;">Back to Home</a>
         </div>
-    </body>
-    </html>
+    </div>
     '''
+    
+    return BASE_HTML.replace('{% block content %}{% endblock %}', content)
 
 @app.route('/status')
 def queue_status():
     if not is_queue_active():
-        return redirect('/')
+        return INACTIVE_HTML
     
     current_number, waiting, total_waiting = get_queue_data()
     wait_time = calculate_wait_time(total_waiting + 1)
     business_name, created_by, session_started = get_business_info()
     
-    waiting_display = ''.join([f'<div style="display: inline-block; background: white; padding: 10px 15px; margin: 5px; border-radius: 5px; border: 1px solid #dee2e6;">#{num}</div>' for num in waiting[:12]])
+    waiting_html = ''.join([f'<span class="status-badge">#{num}</span>' for num in waiting[:15]])
     
-    return f'''
-    <!DOCTYPE html>
-    <html>
-    <head>
-        <title>Queue Status</title>
-        <meta http-equiv="refresh" content="15">
-        <style>
-            body {{ font-family: Arial; text-align: center; padding: 30px 20px; }}
-            .current {{ background: #28a745; color: white; padding: 30px; border-radius: 10px; margin: 20px 0; }}
-            .btn {{ display: inline-block; padding: 12px 25px; background: #667eea; color: white; text-decoration: none; border-radius: 25px; margin: 10px; }}
-        </style>
-    </head>
-    <body>
-        <h1>📊 Queue Status</h1>
-        
-        <div class="current">
-            <h2>Now Serving</h2>
-            <div style="font-size: 2.5em; font-weight: bold;">#{current_number if current_number else "---"}</div>
+    content = f'''
+    <div class="header">
+        <h1>📊 Live Queue Status</h1>
+        <p>{business_name}</p>
+    </div>
+
+    <div class="grid grid-3">
+        <div class="stat-card">
+            <div class="stat-number">{current_number if current_number else '--'}</div>
+            <div>Now Serving</div>
         </div>
-        
-        <div style="background: #f8f9fa; padding: 20px; border-radius: 10px; margin: 20px 0;">
-            <h3>Waiting: {len(waiting)} people</h3>
-            <div>{waiting_display}</div>
-            {f'<p>... and {len(waiting) - 12} more</p>' if len(waiting) > 12 else ''}
+        <div class="stat-card">
+            <div class="stat-number">{len(waiting)}</div>
+            <div>Waiting</div>
         </div>
-        
-        <p>Estimated wait time: {wait_time} minutes</p>
-        <a href="/join" class="btn" style="background: #28a745;">Join Queue</a>
-        <a href="/" class="btn" style="background: #6c757d;">Home</a>
-    </body>
-    </html>
+        <div class="stat-card">
+            <div class="stat-number">{wait_time}</div>
+            <div>Est. Wait (min)</div>
+        </div>
+    </div>
+
+    <div class="card">
+        <h3 style="margin-bottom: 1rem;">Currently Waiting</h3>
+        <div style="min-height: 100px;">
+            {waiting_html if waiting else '<p style="color: #718096; text-align: center;">No customers waiting</p>'}
+        </div>
+        {f'<p style="color: #718096; margin-top: 1rem;">... and {len(waiting) - 15} more in queue</p>' if len(waiting) > 15 else ''}
+    </div>
+
+    <div style="text-align: center; margin-top: 2rem;">
+        <a href="/join" class="btn btn-primary">Join Queue</a>
+        <a href="/" class="btn btn-secondary">Return Home</a>
+    </div>
+
+    <div style="text-align: center; margin-top: 2rem; color: #718096;">
+        <p>🔄 Page updates automatically every 15 seconds</p>
+    </div>
     '''
+    
+    html = BASE_HTML.replace('{% block content %}{% endblock %}', content)
+    return html.replace('</head>', '<meta http-equiv="refresh" content="15"></head>')
 
 @app.route('/status/<int:queue_number>')
 def user_queue_status(queue_number):
     if not is_queue_active():
-        return redirect('/')
+        return INACTIVE_HTML
     
     current_number, waiting, total_waiting = get_queue_data()
     
-    # Check if queue number exists
     if queue_number not in queue_data['queue'] and queue_number not in queue_data['served_numbers']:
-        return '''
-        <!DOCTYPE html>
-        <html>
-        <head><title>Error</title><style>body { font-family: Arial; text-align: center; padding: 50px; }</style></head>
-        <body>
-            <h1>❌ Queue Number Not Found</h1>
-            <p>Please check your queue number or get a new one.</p>
-            <a href="/join" style="padding: 10px 20px; background: #667eea; color: white; text-decoration: none; border-radius: 5px;">Get Queue Number</a>
-        </body>
-        </html>
+        content = '''
+        <div style="max-width: 500px; margin: 100px auto; text-align: center;">
+            <div class="card">
+                <div style="font-size: 4rem; color: #e53e3e; margin-bottom: 1rem;">❌</div>
+                <h1 style="margin-bottom: 1rem;">Queue Number Not Found</h1>
+                <p style="color: #718096; margin-bottom: 2rem;">Please verify your queue number or obtain a new one.</p>
+                <a href="/join" class="btn btn-primary">Get Queue Number</a>
+            </div>
+        </div>
         '''
+        return BASE_HTML.replace('{% block content %}{% endblock %}', content)
     
-    # Determine user's status
     if queue_number in queue_data['served_numbers']:
         status = 'served'
         user_position = 0
+        status_icon = '✅'
+        status_color = '#48bb78'
+        status_message = 'Service Completed'
     elif queue_number == current_number:
         status = 'serving'
         user_position = 0
+        status_icon = '🎉'
+        status_color = '#ed8936'
+        status_message = 'Your Turn Now'
     else:
         status = 'waiting'
         user_position = len([num for num in queue_data['queue'] if num < queue_number]) + 1
+        status_icon = '⏳'
+        status_color = '#4299e1'
+        status_message = 'In Queue'
     
     wait_time = calculate_wait_time(user_position) if user_position > 0 else 0
     business_name, created_by, session_started = get_business_info()
     
-    status_html = ""
-    if status == 'served':
-        status_html = '<div style="background: #28a745; color: white; padding: 20px; border-radius: 10px; margin: 20px 0;"><h3>✅ Completed</h3><p>You have been served. Thank you!</p></div>'
-    elif status == 'serving':
-        status_html = '<div style="background: #28a745; color: white; padding: 20px; border-radius: 10px; margin: 20px 0;"><h3>🎉 It\'s Your Turn!</h3><p>Please proceed to the counter</p></div>'
-    else:
-        status_html = f'''
-        <div style="background: #ffc107; color: #856404; padding: 15px; border-radius: 20px; margin: 15px 0; font-size: 1.2em;">
-            Position in Line: {user_position}
-        </div>
-        <div style="background: #f8f9fa; padding: 20px; border-radius: 10px; margin: 20px 0; text-align: left;">
-            <p><strong>Estimated wait time:</strong> {wait_time} minutes</p>
-            <p><strong>People ahead of you:</strong> {user_position - 1}</p>
-        </div>
-        '''
-    
-    return f'''
-    <!DOCTYPE html>
-    <html>
-    <head>
-        <title>Your Status</title>
-        <meta http-equiv="refresh" content="30">
-        <style>
-            body {{ font-family: Arial; text-align: center; padding: 30px 20px; }}
-            .queue-number {{ font-size: 3em; color: #28a745; margin: 20px 0; font-weight: bold; }}
-            .btn {{ display: inline-block; padding: 12px 25px; background: #667eea; color: white; text-decoration: none; border-radius: 25px; margin: 10px; }}
-        </style>
-    </head>
-    <body>
-        <h1>Your Queue Status</h1>
-        <div class="queue-number">#{queue_number}</div>
-        
-        {status_html}
+    content = f'''
+    <div style="max-width: 600px; margin: 2rem auto;">
+        <div class="card">
+            <div style="text-align: center;">
+                <div style="font-size: 4rem; margin-bottom: 1rem;">{status_icon}</div>
+                <h1 style="margin-bottom: 0.5rem;">Queue Status</h1>
+                <p style="color: #718096; margin-bottom: 2rem;">{business_name}</p>
+                
+                <div class="queue-number">#{queue_number}</div>
+                
+                <div style="background: {status_color}; color: white; padding: 1.5rem; border-radius: 8px; margin: 1.5rem 0;">
+                    <h2 style="margin-bottom: 0.5rem;">{status_message}</h2>
+                    {f'<p style="font-size: 1.2rem;">Position {user_position} of {len(waiting) + 1}</p>' if status == 'waiting' else ''}
+                </div>
 
-        <div style="background: #28a745; color: white; padding: 15px; border-radius: 10px; margin: 20px 0;">
-            <h3>Now Serving</h3>
-            <div style="font-size: 2em; font-weight: bold;">#{current_number if current_number else "---"}</div>
+                <div class="grid grid-2" style="margin: 2rem 0;">
+                    <div class="stat-card">
+                        <div class="stat-number">{current_number if current_number else '--'}</div>
+                        <div>Now Serving</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number">{wait_time if status == 'waiting' else 0}</div>
+                        <div>Est. Wait (min)</div>
+                    </div>
+                </div>
+
+                <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
+                    <a href="/status" class="btn">View Full Queue</a>
+                    <a href="/" class="btn btn-secondary">Return Home</a>
+                </div>
+            </div>
         </div>
-        
-        <a href="/status" class="btn">View Full Queue</a>
-        <a href="/" class="btn" style="background: #6c757d;">Home</a>
-    </body>
-    </html>
+    </div>
     '''
+    
+    html = BASE_HTML.replace('{% block content %}{% endblock %}', content)
+    return html.replace('</head>', '<meta http-equiv="refresh" content="30"></head>')
 
 @app.route('/admin/init')
 def admin_init():
-    return '''
-    <!DOCTYPE html>
-    <html>
-    <head>
-        <title>Start Queue</title>
-        <style>
-            body {{ font-family: Arial; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }}
-            .card {{ background: white; padding: 40px; border-radius: 15px; box-shadow: 0 15px 35px rgba(0,0,0,0.1); max-width: 500px; width: 100%; }}
-            input {{ width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ddd; border-radius: 5px; }}
-            .btn {{ width: 100%; padding: 12px; background: #28a745; color: white; border: none; border-radius: 5px; font-size: 1.1em; cursor: pointer; }}
-        </style>
-    </head>
-    <body>
+    content = '''
+    <div style="max-width: 500px; margin: 50px auto;">
         <div class="card">
-            <h1 style="text-align: center;">🚀 Start Queue Management</h1>
+            <div style="text-align: center; margin-bottom: 2rem;">
+                <div style="font-size: 3rem; color: #667eea; margin-bottom: 1rem;">🚀</div>
+                <h1 style="margin-bottom: 0.5rem;">Activate Queue System</h1>
+                <p style="color: #718096;">Configure your digital queue management</p>
+            </div>
+            
             <form action="/admin/start" method="POST">
-                <input type="text" name="business_name" placeholder="Business Name" required>
-                <input type="text" name="created_by" placeholder="Your Name" required>
-                <button type="submit" class="btn">Start Queue System</button>
+                <div class="form-group">
+                    <label class="form-label">Business/Organization Name</label>
+                    <input type="text" name="business_name" class="form-input" placeholder="Enter business name" required>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Manager/Administrator Name</label>
+                    <input type="text" name="created_by" class="form-input" placeholder="Enter administrator name" required>
+                </div>
+                
+                <button type="submit" class="btn" style="width: 100%;">
+                    🚀 Activate Queue System
+                </button>
             </form>
         </div>
-    </body>
-    </html>
+    </div>
     '''
+    return BASE_HTML.replace('{% block content %}{% endblock %}', content)
 
 @app.route('/admin/start', methods=['POST'])
 def start_queue():
-    business_name = request.form.get('business_name', 'Our Business')
-    created_by = request.form.get('created_by', 'Admin')
+    business_name = request.form.get('business_name', 'Business Name')
+    created_by = request.form.get('created_by', 'Manager')
     set_queue_active(True, business_name, created_by)
     return redirect('/admin')
 
@@ -371,62 +493,96 @@ def admin_panel():
     current_number, waiting, total_waiting = get_queue_data()
     business_name, created_by, session_started = get_business_info()
     
-    # Generate QR codes
     join_url = f"{request.url_root}join"
     status_url = f"{request.url_root}status"
     join_qr = generate_qr_code(join_url)
     status_qr = generate_qr_code(status_url)
     
-    total_today, served_today = get_daily_stats()
+    total_customers = len(queue_data['queue']) + len(queue_data['served_numbers'])
+    served_today = len(queue_data['served_numbers'])
     
-    waiting_html = ''.join([f'<div style="display: inline-block; background: white; padding: 15px; margin: 5px; border-radius: 5px; border: 1px solid #dee2e6; position: relative;">{num}<form action="/admin/remove/{num}" method="POST" style="display: inline; position: absolute; top: -5px; right: -5px;"><button type="submit" style="background: #dc3545; color: white; border: none; border-radius: 50%; width: 20px; height: 20px; font-size: 12px; cursor: pointer;">×</button></form></div>' for num in waiting])
+    waiting_html = ''.join([f'''
+    <div style="display: inline-block; background: white; padding: 1rem; margin: 0.5rem; border-radius: 8px; border: 1px solid #e2e8f0; position: relative;">
+        #{num}
+        <form action="/admin/remove/{num}" method="POST" style="display: inline; position: absolute; top: -8px; right: -8px;">
+            <button type="submit" style="background: #e53e3e; color: white; border: none; border-radius: 50%; width: 24px; height: 24px; font-size: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center;">×</button>
+        </form>
+    </div>
+    ''' for num in waiting])
     
-    return f'''
-    <!DOCTYPE html>
-    <html>
-    <head>
-        <title>Admin Panel</title>
-        <style>
-            body {{ font-family: Arial; padding: 20px; }}
-            .btn {{ padding: 12px 25px; margin: 5px; border: none; border-radius: 5px; color: white; cursor: pointer; }}
-            .btn-next {{ background: #28a745; }}
-            .btn-add {{ background: #007bff; }}
-            .btn-end {{ background: #dc3545; }}
-        </style>
-    </head>
-    <body>
-        <h1>⚙️ Admin Panel - {business_name}</h1>
+    content = f'''
+    <div class="header">
+        <h1>⚙️ Queue Management Dashboard</h1>
+        <p>{business_name} • Managed by {created_by}</p>
+    </div>
+
+    <div class="grid grid-3">
+        <div class="stat-card">
+            <div class="stat-number">{current_number if current_number else '--'}</div>
+            <div>Now Serving</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-number">{total_customers}</div>
+            <div>Total Today</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-number">{served_today}</div>
+            <div>Served</div>
+        </div>
+    </div>
+
+    <div class="grid grid-2">
+        <div class="card">
+            <h3 style="margin-bottom: 1rem;">Queue Actions</h3>
+            <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+                <form action="/admin/next" method="POST" style="display: inline;">
+                    <button type="submit" class="btn btn-primary">✅ Serve Next Customer</button>
+                </form>
+                <form action="/admin/add" method="POST" style="display: inline;">
+                    <button type="submit" class="btn">➕ Add Manual Entry</button>
+                </form>
+                <form action="/admin/end" method="POST" style="display: inline;">
+                    <button type="submit" class="btn btn-danger" onclick="return confirm('End queue session?')">🛑 End Session</button>
+                </form>
+            </div>
+        </div>
+
+        <div class="card">
+            <h3 style="margin-bottom: 1rem;">Quick Links</h3>
+            <div style="display: flex; gap: 1rem;">
+                <a href="{join_url}" target="_blank" class="btn btn-secondary">Join Page</a>
+                <a href="{status_url}" target="_blank" class="btn btn-secondary">Status Page</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="grid grid-2">
+        <div class="card">
+            <h3 style="margin-bottom: 1rem;">Join Queue QR</h3>
+            <div class="qr-code">
+                <img src="{join_qr}" alt="Join QR" style="width: 100%; border-radius: 8px;">
+            </div>
+            <p style="text-align: center; margin-top: 1rem; color: #718096;">Scan for customers to join</p>
+        </div>
         
-        <div style="background: #f8f9fa; padding: 20px; border-radius: 10px; margin: 20px 0;">
-            <h2>Now Serving: <span style="color: #28a745;">#{current_number if current_number else "None"}</span></h2>
-            
-            <form action="/admin/next" method="POST" style="display: inline;">
-                <button type="submit" class="btn btn-next">✅ Serve Next</button>
-            </form>
-            <form action="/admin/add" method="POST" style="display: inline;">
-                <button type="submit" class="btn btn-add">➕ Add Number</button>
-            </form>
-            <form action="/admin/end" method="POST" style="display: inline;">
-                <button type="submit" class="btn btn-end">🛑 End Queue</button>
-            </form>
-        </div>
-
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin: 20px 0;">
-            <div style="text-align: center;">
-                <h3>Join QR</h3>
-                <img src="{join_qr}" style="max-width: 150px; border: 1px solid #ddd; padding: 10px; background: white;">
+        <div class="card">
+            <h3 style="margin-bottom: 1rem;">Status QR</h3>
+            <div class="qr-code">
+                <img src="{status_qr}" alt="Status QR" style="width: 100%; border-radius: 8px;">
             </div>
-            <div style="text-align: center;">
-                <h3>Status QR</h3>
-                <img src="{status_qr}" style="max-width: 150px; border: 1px solid #ddd; padding: 10px; background: white;">
-            </div>
+            <p style="text-align: center; margin-top: 1rem; color: #718096;">Scan to view queue status</p>
         </div>
+    </div>
 
-        <h3>Waiting Queue ({len(waiting)} people):</h3>
-        <div>{waiting_html}</div>
-    </body>
-    </html>
+    <div class="card">
+        <h3 style="margin-bottom: 1rem;">Waiting Queue ({len(waiting)} customers)</h3>
+        <div style="min-height: 100px;">
+            {waiting_html if waiting else '<p style="color: #718096; text-align: center;">No customers waiting</p>'}
+        </div>
+    </div>
     '''
+    
+    return BASE_HTML.replace('{% block content %}{% endblock %}', content)
 
 @app.route('/admin/next', methods=['POST'])
 def serve_next():
@@ -478,4 +634,4 @@ def end_queue():
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
-    app.run(host='0.0.0.0', port=port, debug=True)
+    app.run(host='0.0.0.0', port=port, debug=False)
